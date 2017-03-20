@@ -7,13 +7,10 @@ library(Matrix)
 library(MASS)
 library(maps)
 library(scales)
-#library(TeachingDemos)
-#library(VIM)
 library(devtools)
 library(ape)
 library(caper)
 library(phytools)
-#library(missMDA)
 
 
 
@@ -249,10 +246,7 @@ reprodStages <- function(matF,matrixStages=NULL){
 }
 
 
-
-####check each matrix to make sure its irriducable, primitive and ergodic
-
-
+##------------------------------------------------------------------------
 ####check each matrix to make sure its irriducable, primitive and ergodic
 
 matrix_epi_check <- function(comadre_rows = c(), combMat = c() ){
@@ -290,7 +284,8 @@ matrix_epi_check <- function(comadre_rows = c(), combMat = c() ){
   ))
 }
 
-
+##------------------------------------------------------------------------
+#calulate the second moment of the matrix
 
 lifespan_stochastisity <- function(matU = matU, startLife = 1){
   uDim=dim(matU)[1]
@@ -312,3 +307,67 @@ lifespan_stochastisity <- function(matU = matU, startLife = 1){
   
   return(list(life_remain = colN1, life_remain_var = first_stage_var))
 }
+
+
+
+##------------------------------------------------------------------------
+#keyfitz entropy
+##this is from the mage package
+
+kentropy <- function(lx, trapeze = TRUE){
+  
+  if(max(lx) > 1) stop("`lx` should be bounded between 0 and 1")
+  if(sum(is.na(lx))>1) stop("There are missing values in `lx`")
+  #if(sum(!diff(lx) <= 0)) stop("`lx` does not monotonically decline")
+  if(sum(!diff(lx) <= 0)!=0)stop("`lx` does not monotonically decline")
+  
+  
+  if(trapeze == TRUE){
+    ma <- function(x,n=2){filter(x,rep(1/n,n), sides=2)}
+    lx2 <- na.omit(as.vector(ma(lx)))
+    return(-sum(lx2*log(lx2))/sum(lx2))
+  }else{
+    return(-sum(lx*log(lx))/sum(lx))
+  }
+}
+
+
+##------------------------------------------------------------------------
+#sentropy entropy
+
+
+s_entropy <- function(lx, mx){
+  
+  if(max(lx) > 1) stop("`lx` should be bounded between 0 and 1")
+  if(sum(is.na(lx))>1) stop("There are missing values in `lx`")
+  if(sum(!diff(lx) <= 0)!=0)stop("`lx` does not monotonically decline")
+  if(sum(is.na(mx))>1) stop("There are missing values in `mx`")
+###any other checks for mx
+  
+    lxmx <- lxmx_curve$lx * lxmx_curve$mx
+    s_entropy <- sum(-((lxmx/sum(lxmx))*(log(((lxmx + 1e-32)/sum(lxmx)))))) 
+
+    return(s_entropy)
+}
+
+
+##------------------------------------------------------------------------
+#calulculate expectional lifespan
+
+
+exceptionalLife<-function(matU,startLife=1){
+  popVector=rep(0,dim(matU)[1])
+  popVector[startLife]=100
+  lifespanLeftover=matrix(0,1000,1)
+  for (n in 1:1000){
+    lifespanLeftover[n]=sum(popVector)
+    popVector=matU%*%popVector
+  }
+  Lexcept.95=min(which(lifespanLeftover<5))
+  if(Lexcept.95==Inf) {Lexcept.95=999}
+  Lexcept.99=min(which(lifespanLeftover<1))
+  if(Lexcept.99==Inf) {Lexcept.99=999}
+  
+  return(c(Lexcept.95,Lexcept.99))
+}
+
